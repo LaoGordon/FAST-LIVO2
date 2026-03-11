@@ -4,7 +4,7 @@
       img_topic: "/camera/camera/color/image_raw"
       lid_topic: "/livox/lidar"
       imu_topic: "/livox/imu"
-      img_en: 0
+      img_en: 1            # 启用视觉功能
       lidar_en: 1
       ros_driver_bug_fix: true  # 启用以修复 Livox 驱动的时间戳问题
 

@@ -1,0 +1,110 @@
+/**:
+  ros__parameters:
+    common:
+      img_topic: "/camera/camera/color/image_raw"
+      lid_topic: "/livox/lidar"
+      imu_topic: "/livox/imu"
+      img_en: 1            # 启用视觉功能
+      lidar_en: 1
+      ros_driver_bug_fix: false  # 仿真环境不需要修复 Livox 驱动时间戳问题
+
+    extrin_calib:
+      # =====================================================================
+      # IMU 到雷达的外参
+      # 根据 xacro 模型计算:
+      #   - imu_link 位于 TORSO 原点 (0, 0, 0)
+      #   - mid360_link 位于:
+      #       安装位置：(0, 0, 0.08) [相对于 TORSO]
+      #       内部偏移：(-0.012, 0, 0.047) [相对于底座]
+      #       总计：(-0.012, 0, 0.127) [相对于 TORSO/IMU]
+      #
+      # extrinsic_T: IMU 在 LiDAR 坐标系下的位置 = T_IMU - T_LiDAR
+      #            = (0, 0, 0) - (-0.012, 0, 0.127) = (0.012, 0, -0.127)
+      # extrinsic_R: LiDAR 到 IMU 的旋转 (单位矩阵，因为两个坐标系方向一致)
+      # =====================================================================
+      extrinsic_T: [0.012, 0.0, -0.127]
+      extrinsic_R: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+
+      # =====================================================================
+      # 相机到雷达的外参 (Camera to LiDAR)
+      # FAST-LIVO2 使用的是 LiDAR to Camera 外参
+      # 根据 TF 树计算:
+      #   - LiDAR (mid360_link) 位置：(-0.012, 0, 0.127) [相对于 TORSO]
+      #   - Camera (d435i_color_optical_frame) 位置：(0.185, 0.0175, 0.0525) [相对于 TORSO]
+      #   - Pcl (LiDAR to Camera) = Camera - LiDAR = (0.197, 0.0175, -0.0745)
+      #   - Rcl: 经验证有效的配置（理论计算需要修正）
+      #     理论值：[0, 0, 1; -1, 0, 0; 0, -1, 0] ❌ 着色点偏右
+      #     有效值：[0, 0, 1; 0, -1, 0; 1, 0, 0] ✅
+      # =====================================================================
+      # Rcl: [0.0, 0.0, 1.0, 0.0, -1.0, 0.0, 1.0, 0.0, 0.0]❌ 颜色丰富时会失效, 无颜色信息时表现正常
+      Rcl: [0.0, -1.0, 0.0, 0.0, 0.0, -1.0, 1.0, 0.0, 0.0]
+      # Rcl: [0.0, 0.0, 1.0, -1.0, 0.0, 0.0, 0.0, -1.0, 0.0]❌ 着色点偏右
+      Pcl: [0.197, 0.0175, -0.0745]
+
+    time_offset:
+      imu_time_offset: 0.0
+      img_time_offset: 0.0
+      exposure_time_init: 0.0
+
+    preprocess:
+      point_filter_num: 1
+      filter_size_surf: 0.5
+      lidar_type: 1 # AVIA for CustomMsg
+      scan_line: 4
+      blind: 0.5
+
+    vio:
+      max_iterations: 5
+      outlier_threshold: 1000
+      img_point_cov: 100
+      patch_size: 8
+      patch_pyrimid_level: 4
+      normal_en: true
+      raycast_en: false
+      inverse_composition_en: false
+      exposure_estimate_en: true
+      inv_expo_cov: 0.1
+
+    imu:
+      imu_en: true
+      imu_int_frame: 30
+      acc_cov: 0.5
+      gyr_cov: 0.3
+      b_acc_cov: 0.0001
+      b_gyr_cov: 0.0001
+
+    lio:
+      max_iterations: 5
+      dept_err: 0.02
+      beam_err: 0.05
+      min_eigen_value: 0.0025
+      voxel_size: 0.5
+      max_layer: 2
+      max_points_num: 50
+      layer_init_num: [5, 5, 5, 5, 5]
+
+    local_map:
+      map_sliding_en: false
+      half_map_size: 100
+      sliding_thresh: 8.0
+
+    uav:
+      imu_rate_odom: false
+      gravity_align_en: false
+
+    publish:
+      dense_map_en: true
+      pub_effect_point_en: false
+      pub_plane_en: false
+      pub_scan_num: 1
+      blind_rgb_points: 0.0
+
+    evo:
+      seq_name: "simulation"
+      pose_output_en: false
+
+    pcd_save:
+      pcd_save_en: false
+      colmap_output_en: false
+      filter_size_pcd: 0.15
+      interval: -1

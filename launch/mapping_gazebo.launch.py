@@ -20,10 +20,12 @@ from launch_ros.actions import Node
 def generate_launch_description():
     # 获取包路径
     pkg_share = get_package_share_directory('fast_livo')
-    
+
     # 配置文件
-    config_file = os.path.join(pkg_share, 'config', 'mid360.yaml')
-    camera_config_file = os.path.join(pkg_share, 'config', 'camera_d435i.yaml')
+    # 仿真环境使用专用的外参配置 (mid360_sim.yaml 和 camera_sim.yaml)
+    # 这些文件中的外参是根据 xacro 机器人模型计算的
+    config_file = os.path.join(pkg_share, 'config', 'mid360_sim.yaml')
+    camera_config_file = os.path.join(pkg_share, 'config', 'camera_sim.yaml')
     rviz_config_file = os.path.join(pkg_share, 'rviz_cfg', 'fast_livo2.rviz')
     
     # 参数声明
@@ -55,7 +57,7 @@ def generate_launch_description():
         output='screen',
         respawn=use_respawn,
     )
-    
+
     # RViz2 节点（可选）
     rviz_node = Node(
         condition=IfCondition(use_rviz),
