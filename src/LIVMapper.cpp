@@ -275,6 +275,7 @@ void LIVMapper::initializeSubscribersAndPublishers(rclcpp::Node::SharedPtr &node
   sub_img = this->node->create_subscription<sensor_msgs::msg::Image>(img_topic, 200000, std::bind(&LIVMapper::img_cbk, this, std::placeholders::_1));
   
   pubLaserCloudFullRes = this->node->create_publisher<sensor_msgs::msg::PointCloud2>("/cloud_registered", 100);
+  pubLaserCloudFullResLidar = this->node->create_publisher<sensor_msgs::msg::PointCloud2>("/cloud_registered_lidar", 100);
   pubNormal = this->node->create_publisher<visualization_msgs::msg::MarkerArray>("/visualization_marker", 100);
   pubSubVisualMap = this->node->create_publisher<sensor_msgs::msg::PointCloud2>("/cloud_visual_sub_map_before", 100);
   pubLaserCloudEffect = this->node->create_publisher<sensor_msgs::msg::PointCloud2>("/cloud_effected", 100);
@@ -1256,6 +1257,11 @@ void LIVMapper::publish_frame_world(const rclcpp::Publisher<sensor_msgs::msg::Po
   laserCloudmsg.header.stamp = this->node->get_clock()->now(); //.fromSec(last_timestamp_lidar);
   laserCloudmsg.header.frame_id = "camera_init";
   pubLaserCloudFullRes->publish(laserCloudmsg);
+  sensor_msgs::msg::PointCloud2 laserCloudmsgLidar;
+  pcl::toROSMsg(*pcl_w_wait_pub, laserCloudmsgLidar);
+  laserCloudmsgLidar.header.stamp = laserCloudmsg.header.stamp;
+  laserCloudmsgLidar.header.frame_id = "camera_init";
+  pubLaserCloudFullResLidar->publish(laserCloudmsgLidar);
 
   /**************** save map ****************/
   /* 1. make sure you have enough memories
