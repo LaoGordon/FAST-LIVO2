@@ -40,9 +40,16 @@ def generate_launch_description():
         default_value='False',
         description='Whether to respawn if a node crashes'
     )
+
+    enable_pcd_save_arg = DeclareLaunchArgument(
+        'enable_pcd_save',
+        default_value='False',
+        description='Enable native FAST-LIVO2 PCD export for one-off map building'
+    )
     
     use_rviz = LaunchConfiguration('use_rviz')
     use_respawn = LaunchConfiguration('use_respawn')
+    enable_pcd_save = LaunchConfiguration('enable_pcd_save')
     
     # FAST-LIVO2 节点
     fastlivo_node = Node(
@@ -53,6 +60,7 @@ def generate_launch_description():
             config_file,
             camera_config_file,
             {'use_sim_time': True},  # 关键：使用仿真时间
+            {'pcd_save.pcd_save_en': enable_pcd_save},
         ],
         output='screen',
         respawn=use_respawn,
@@ -71,6 +79,7 @@ def generate_launch_description():
     return LaunchDescription([
         use_rviz_arg,
         use_respawn_arg,
+        enable_pcd_save_arg,
         fastlivo_node,
         rviz_node,
     ])
