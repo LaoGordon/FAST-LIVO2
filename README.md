@@ -175,6 +175,17 @@ ros2 launch fast_livo mapping_aviz.launch.py use_rviz:=True
 ros2 bag play -p Retail_Street  # space bar controls play/pause
 ```
 
+### Run with Livox MID360 + RealSense D435i (real hardware)
+
+```bash
+ros2 launch fast_livo mapping_mid360.launch.py use_rviz:=True
+```
+
+Default parameter files used by this launch:
+
+- `config/mid360.yaml`
+- `config/camera_d435i.yaml`
+
 ## 5. License
 
 The source code of this package is released under the [**GPLv2**](http://www.gnu.org/licenses/) license. For commercial use, please contact me at <zhengcr@connect.hku.hk> and Prof. Fu Zhang at <fuzhang@hku.hk> to discuss an alternative license.
