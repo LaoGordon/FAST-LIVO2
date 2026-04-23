@@ -6,6 +6,8 @@ Thanks to hku mars lab chunran zheng for the open source excellent work
 
 ### 📢 News
 
+> **Branch Update (2026-04)**: The `ros2` and `nav-lidar` branches have been merged into **`humble`**. This unified branch supports both **real hardware (MID360 + D435i)** and **Gazebo simulation**.
+
 - 🔓 **2025-01-23**: Code released!  
 - 🎉 **2024-10-01**: Accepted by **T-RO '24**!  
 - 🚀 **2024-07-02**: Conditionally accepted.
@@ -175,9 +177,32 @@ ros2 launch fast_livo mapping_aviz.launch.py use_rviz:=True
 ros2 bag play -p Retail_Street  # space bar controls play/pause
 ```
 
-### Run with Livox MID360 + RealSense D435i (real hardware)
+### Run Gazebo Simulation
 
 ```bash
+ros2 launch fast_livo mapping_gazebo.launch.py use_rviz:=True
+```
+
+**Optional: export PCD map after simulation**
+
+```bash
+ros2 launch fast_livo mapping_gazebo.launch.py use_rviz:=True enable_pcd_save:=True
+```
+
+> When `enable_pcd_save:=True`, the system will save the built map to the `Log/PCD/` directory after the node exits. Make sure you have enough disk space.
+
+### Run with Livox MID360 + RealSense D435i (real hardware)
+
+Make sure the Livox MID360 LiDAR and RealSense D435i camera drivers are running before launching FAST-LIVO2.
+
+```bash
+# Terminal 1: Launch LiDAR driver (example for MID360)
+ros2 launch livox_ros_driver2 rviz_MID360_launch.py
+
+# Terminal 2: Launch camera driver
+ros2 launch realsense2_camera rs_launch.py
+
+# Terminal 3: Launch FAST-LIVO2
 ros2 launch fast_livo mapping_mid360.launch.py use_rviz:=True
 ```
 
@@ -185,6 +210,15 @@ Default parameter files used by this launch:
 
 - `config/mid360.yaml`
 - `config/camera_d435i.yaml`
+
+### ROS2 Topics
+
+| Topic | Description |
+|-------|-------------|
+| `/cloud_registered` | Colorized LiDAR point cloud (visual-LiDAR fused) |
+| `/cloud_registered_lidar` | Uncolored full-FOV LiDAR point cloud for **navigation costmap** (e.g., Nav2 obstacle layer) |
+| `/cloud_effected` | Downsampled LiDAR points used for ICP registration |
+| `/visualization_marker` | Plane normal visualization markers |
 
 ## 5. License
 
