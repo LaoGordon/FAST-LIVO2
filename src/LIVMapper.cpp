@@ -793,20 +793,15 @@ void LIVMapper::livox_pcl_cbk(const livox_ros_driver2::msg::CustomMsg::ConstShar
   if (!lidar_en) return;
   mtx_buffer.lock();
   livox_ros_driver2::msg::CustomMsg::SharedPtr msg(new livox_ros_driver2::msg::CustomMsg(*msg_in));
-  // if ((abs(stamp2Sec(msg->header.stamp) - last_timestamp_lidar) > 0.2 && last_timestamp_lidar > 0) || sync_jump_flag)
-  // {
-  //   ROS_WARN("lidar jumps %.3f\n", stamp2Sec(msg->header.stamp) - last_timestamp_lidar);
-  //   sync_jump_flag = true;
-  //   msg->header.stamp = rclcpp::Time().fromSec(last_timestamp_lidar + 0.1);
-  // }
-  if (abs(last_timestamp_imu - stamp2Sec(msg->header.stamp)) > 1.0 && !imu_buffer.empty())
+  double cur_head_time = stamp2Sec(msg->header.stamp);
+  if (ros_driver_fix_en && last_timestamp_lidar > 0.0 && fabs(cur_head_time - last_timestamp_lidar) > 1.0)
   {
-    double timediff_imu_wrt_lidar = last_timestamp_imu - stamp2Sec(msg->header.stamp);
-    RCLCPP_INFO(this->node->get_logger(), "\033[95mSelf sync IMU and LiDAR, HARD time lag is %.10lf \n\033[0m", timediff_imu_wrt_lidar - 0.100);
-    // imu_time_offset = timediff_imu_wrt_lidar;
+    RCLCPP_WARN(this->node->get_logger(), "\033[95m[TIME] LiDAR timestamp jump: %.3f -> %.3f (delta: %.3f), resetting offset\n\033[0m", last_timestamp_lidar, cur_head_time, cur_head_time - last_timestamp_lidar);
+    imu_buffer.clear();
+    lidar_imu_offset_initialized_ = false;
+    last_timestamp_imu = -1.0;
   }
 
-  double cur_head_time = stamp2Sec(msg->header.stamp);
   RCLCPP_INFO(this->node->get_logger(), "Get LiDAR, its header time: %.6f", cur_head_time);
   if (cur_head_time < last_timestamp_lidar)
   {
@@ -838,15 +833,41 @@ void LIVMapper::imu_cbk(const sensor_msgs::msg::Imu::ConstSharedPtr &msg_in)
   if (last_timestamp_lidar < 0.0) return;
   RCLCPP_INFO(this->node->get_logger(), "get imu at time: %.6f", stamp2Sec(msg_in->header.stamp));
   sensor_msgs::msg::Imu::SharedPtr msg(new sensor_msgs::msg::Imu(*msg_in));
-  msg->header.stamp = sec2Stamp(stamp2Sec(msg->header.stamp) - imu_time_offset);
-  double timestamp = stamp2Sec(msg->header.stamp);
+  double raw_imu_time = stamp2Sec(msg->header.stamp);
+  double timestamp = raw_imu_time;
 
-  if (fabs(last_timestamp_lidar - timestamp) > 0.5 && (!ros_driver_fix_en))
+  if (ros_driver_fix_en)
   {
-    RCLCPP_WARN(this->node->get_logger(), "IMU and LiDAR not synced! delta time: %lf .\n", last_timestamp_lidar - timestamp);
+    double current_offset = last_timestamp_lidar - raw_imu_time;
+    if (!lidar_imu_offset_initialized_)
+    {
+      imu_time_offset = std::round(current_offset);
+      lidar_imu_offset_initialized_ = true;
+      last_timestamp_imu = -1.0;
+      RCLCPP_INFO(this->node->get_logger(), "[TIME] IMU-LiDAR offset initialized: %.3f s", imu_time_offset);
+    }
+    else if (fabs(current_offset - imu_time_offset) > 5.0)
+    {
+      RCLCPP_WARN(this->node->get_logger(), "[TIME] Large offset change: %.3f -> %.3f, resetting", imu_time_offset, std::round(current_offset));
+      imu_time_offset = std::round(current_offset);
+      last_timestamp_imu = -1.0;
+    }
+    else
+    {
+      constexpr double alpha = 0.01;
+      imu_time_offset = alpha * current_offset + (1.0 - alpha) * imu_time_offset;
+    }
+    timestamp += imu_time_offset;
+  }
+  else
+  {
+    timestamp = raw_imu_time - imu_time_offset;
+    if (fabs(last_timestamp_lidar - timestamp) > 0.5)
+    {
+      RCLCPP_WARN(this->node->get_logger(), "IMU and LiDAR not synced! delta time: %lf", last_timestamp_lidar - timestamp);
+    }
   }
 
-  if (ros_driver_fix_en) timestamp += std::round(last_timestamp_lidar - timestamp);
   msg->header.stamp = sec2Stamp(timestamp);
 
   mtx_buffer.lock();

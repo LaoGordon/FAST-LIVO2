@@ -103,6 +103,7 @@ public:
   nav_msgs::msg::Odometry imu_prop_odom;
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pubImuPropOdom;
   double imu_time_offset = 0.0;
+  bool lidar_imu_offset_initialized_ = false;
 
   bool gravity_align_en = false, gravity_align_finished = false;
 
